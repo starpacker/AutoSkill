@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Temporary files (tmp_* files in root)
+tmp_*.py
+tmp_*.sh
+tmp_*.txt
+
+# Directories to exclude entirely
+tmp/
+data/
+BioDSA/
+BioDSBench/
+
+# Data files (large, not code)
+*.json
+*.jsonl
+*.csv
+*.tsv
+
+# Reports
+reports/
+docs/
+
+# Environment
+.venv/
+venv/
+.env
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Trajectory data
+trajectory_comparison_data.json
