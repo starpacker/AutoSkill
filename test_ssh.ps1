@@ -1,0 +1,1 @@
+& "$env:WINDIR\System32\OpenSSH\ssh.exe" -o StrictHostKeyChecking=no yjh@10.128.247.28 "echo CONNECTED && hostname && date"

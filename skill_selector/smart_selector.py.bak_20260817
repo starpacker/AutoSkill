@@ -1,0 +1,310 @@
+"""SmartSelector - learns from historical transfer results.
+
+Strategy: similarity + per-pair history + reputation
+  1. Load ALL historical transfer data (results_index.json transfers)
+     to find per-pair (source->target) historical results.
+  2. Score each candidate source:
+     - similarity (40% weight): semantic similarity between source & target
+     - per-pair history (40% weight): how well this source performed on this
+       specific target in the past (avg reward of all transfers)
+     - reputation (20% weight): source's global avg_delta across all targets
+  3. For targets with no transfer history, fall back to similarity-only.
+  4. Apply baseline bonus: for very low baseline targets, prefer
+     historically proven sources even at slightly lower similarity.
+
+Feedback loop:
+  After each evaluation, call update_history(source, target, reward, baseline)
+  to record the result. The history is automatically persisted to disk.
+"""
+import json
+import os
+from collections import defaultdict
+from typing import Dict, List, Optional, Tuple
+
+from .base import SkillSelector
+
+
+class SmartSelector(SkillSelector):
+    """Skill selector that learns from historical transfer results.
+
+    Loads both per-source stats (history_data.json) and per-pair transfer
+    data (results_index.json) to make better selections. Per-pair data
+    is the strongest signal: if source X has been tried on target Y and
+    worked well, strongly prefer it.
+    """
+
+    def __init__(self, history_data_path: Optional[str] = None,
+                 results_index_path: Optional[str] = None):
+        self.history_data_path: Optional[str] = None
+        self.results_index_path: Optional[str] = None
+        self.history_data: Dict[str, dict] = {}
+        self.baselines: Dict[str, float] = {}
+        self.available_skills: Dict[str, str] = {}
+
+        # Per-pair transfer history: {target: {source: [rewards]}}
+        self.pair_history: Dict[str, Dict[str, List[float]]] = {}
+        self._load_history(history_data_path)
+        self._load_transfer_data(results_index_path)
+
+    def _load_history(self, path: Optional[str] = None) -> None:
+        """Load historical transfer data from JSON file."""
+        if path is None:
+            candidates = [
+                '/data/yjh/skill-transfer-eval/history_data.json',
+                os.path.join(os.path.dirname(__file__), 'history_data.json'),
+                'history_data.json',
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    path = c
+                    break
+
+        self.history_data_path = path
+        if path and os.path.exists(path):
+            with open(path) as f:
+                data = json.load(f)
+            self.history_data = data.get('per_source_stats', {})
+            self.baselines = data.get('baselines', {})
+            print(f'[SmartSelector] Loaded history: {len(self.history_data)} sources, '
+                  f'{len(self.baselines)} baselines from {path}')
+        else:
+            print(f'[SmartSelector] No history data found at {path}, starting fresh')
+
+    def _load_transfer_data(self, path: Optional[str] = None) -> None:
+        """Load per-pair transfer results from results_index.json."""
+        if path is None:
+            candidates = [
+                '/data/yjh/skill-transfer-eval/results_index.json',
+                os.path.join(os.path.dirname(__file__), 'results_index.json'),
+                '../results_index.json',
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    path = c
+                    break
+
+        self.results_index_path = path
+        if not path or not os.path.exists(path):
+            print(f'[SmartSelector] No results_index found at {path}')
+            return
+
+        with open(path) as f:
+            data = json.load(f)
+
+        transfers = data.get('transfers', [])
+        for tx in transfers:
+            src = tx.get('source')
+            tgt = tx.get('target')
+            rew = tx.get('reward')
+            if src and tgt and rew is not None:
+                self.pair_history.setdefault(tgt, {})
+                self.pair_history[tgt].setdefault(src, [])
+                self.pair_history[tgt][src].append(rew)
+
+        # Also load baselines from all_results.json if available
+        if not self.baselines:
+            all_results_path = path.replace('results_index.json',
+                                            'summary/all_results.json')
+            if os.path.exists(all_results_path):
+                try:
+                    with open(all_results_path) as f:
+                        ad = json.load(f)
+                    for t_entry in ad.get('tasks', []):
+                        tid = t_entry.get('task_id', '')
+                        bl = [r.get('reward', 0)
+                              for r in t_entry.get('baseline', [])]
+                        if bl:
+                            import statistics
+                            self.baselines[tid] = statistics.mean(bl)
+                except Exception as e:
+                    print(f'[SmartSelector] Failed to load all_results.json: {e}')
+
+        print(f'[SmartSelector] Loaded pair history: {len(self.pair_history)} targets, '
+              f'{sum(len(v) for v in self.pair_history.values())} source-target pairs')
+
+    def _save_history(self) -> None:
+        """Persist current history data to disk."""
+        if not self.history_data_path:
+            print('[SmartSelector] No history path set, cannot save')
+            return
+        try:
+            data = {
+                'per_source_stats': self.history_data,
+                'baselines': self.baselines,
+            }
+            with open(self.history_data_path, 'w') as f:
+                json.dump(data, f, indent=2)
+            print(f'[SmartSelector] Saved history to {self.history_data_path}')
+        except Exception as e:
+            print(f'[SmartSelector] Failed to save history: {e}')
+
+    def update_history(self, source: str, target: str, reward: float,
+                       baseline: float, save: bool = True) -> None:
+        """Record the result of a skill transfer evaluation.
+
+        This updates the source skill's historical statistics so that
+        future selections benefit from this experience.
+
+        Args:
+            source: The source task whose skill was used.
+            target: The target task that was evaluated.
+            reward: The reward obtained (0-1).
+            baseline: The target's baseline score (0-1).
+            save: Whether to persist to disk immediately.
+        """
+        delta = round(reward - baseline, 3)
+        if delta > 0.05:
+            verdict = 'helpful'
+        elif delta < -0.05:
+            verdict = 'harmful'
+        else:
+            verdict = 'neutral'
+
+        stats = self.history_data.setdefault(source, {
+            'helpful': 0, 'harmful': 0, 'neutral': 0, 'n': 0,
+            'avg_delta': 0.0, 'helpful_ratio': 0.0,
+        })
+        stats[verdict] += 1
+        stats['n'] += 1
+        old_avg = stats.get('avg_delta', 0.0)
+        old_n = stats['n'] - 1
+        if old_n > 0:
+            stats['avg_delta'] = round((old_avg * old_n + delta) / stats['n'], 3)
+        else:
+            stats['avg_delta'] = delta
+        stats['helpful_ratio'] = round(stats['helpful'] / stats['n'], 3)
+
+        # Also update pair history
+        self.pair_history.setdefault(target, {})
+        self.pair_history[target].setdefault(source, [])
+        self.pair_history[target][source].append(reward)
+
+        print(f'[SmartSelector] Feedback: {source} -> {target} '
+              f'reward={reward:.3f} baseline={baseline:.3f} '
+              f'delta={delta:+.3f} [{verdict.upper()}]')
+        print(f'[SmartSelector] Source "{source}" now: '
+              f'n={stats["n"]} helpful={stats["helpful"]} '
+              f'harms={stats["harmful"]} neut={stats["neutral"]} '
+              f'avg_delta={stats["avg_delta"]:+.3f}')
+
+        if save:
+            self._save_history()
+
+    def _get_pair_score(self, target: str, source: str) -> Tuple[float, int]:
+        """Get the historical score for this specific source-target pair.
+
+        Returns:
+            Tuple of (avg_reward, count). If no history, (0.0, 0).
+        """
+        target_history = self.pair_history.get(target, {})
+        rewards = target_history.get(source, [])
+        if not rewards:
+            return 0.0, 0
+        return sum(rewards) / len(rewards), len(rewards)
+
+    def select_skill(
+        self,
+        target_task: str,
+        available_skills: Dict[str, str],
+        similarity_matrix: Dict[str, Dict[str, float]],
+    ) -> Tuple[Optional[str], float]:
+        """Select the best skill using similarity + per-pair history + reputation."""
+        self.available_skills = available_skills
+        target_bl = self.baselines.get(target_task, 0.5)
+        target_sims = similarity_matrix.get(target_task, {})
+        bl_factor = 1.0 - target_bl  # higher for low-baseline targets
+
+        # Check if we have per-pair history for this target
+        has_pair_history = target_task in self.pair_history and \
+            any(s in available_skills for s in self.pair_history[target_task])
+
+        candidates = []
+        for src_name, src_path in available_skills.items():
+            sim = target_sims.get(src_name, 0.0)
+            src_stats = self.history_data.get(src_name, {})
+            n = src_stats.get('n', 0)
+            avg_delta = src_stats.get('avg_delta', 0.0)
+            helpful_ratio = src_stats.get('helpful_ratio', 0.0)
+            harmful_count = src_stats.get('harmful', 0)
+
+            # ── Component 1: Similarity (always available) ──
+            sim_score = sim
+
+            # ── Component 2: Per-pair history (strongest signal) ──
+            pair_avg, pair_n = self._get_pair_score(target_task, src_name)
+            pair_score = pair_avg  # 0.0 if no history
+
+            # ── Component 3: Reputation (global source stats) ──
+            rep_score = 0.0
+            if n >= 3:
+                harmful_ratio = harmful_count / n
+                if harmful_ratio > 0.4 and avg_delta < -0.05:
+                    rep_score = -0.15
+                elif helpful_ratio > 0.3 and avg_delta > 0.05:
+                    rep_score = 0.08
+            elif n >= 1:
+                rep_score = min(0.05, avg_delta * 0.1)
+
+            # ── Combined score ──
+            if has_pair_history and pair_n >= 2:
+                # Strong signal: use per-pair data heavily
+                # sim: 30%, pair: 50%, rep: 20%
+                score = sim_score * 0.30 + pair_score * 0.50 + rep_score * 0.20
+                # Add extra boost for proven pairs
+                if pair_score > 0.60:
+                    score += 0.10  # strongly proven pair bonus
+                elif pair_score > 0.40:
+                    score += 0.05  # moderately proven pair bonus
+            elif pair_n == 1:
+                # Single data point, use cautiously
+                score = sim_score * 0.40 + pair_score * 0.30 + rep_score * 0.30
+            else:
+                # No pair history, fall back to similarity + reputation
+                score = sim_score * 0.70 + rep_score * 0.30
+
+            # Baseline bonus: for low-baseline targets, prefer proven sources
+            if target_bl < 0.50 and pair_n >= 2 and pair_avg > target_bl:
+                score += 0.05 * bl_factor
+
+            candidates.append((
+                src_name, score, sim_score, pair_score, pair_n,
+                rep_score, n, avg_delta, src_stats
+            ))
+
+        if not candidates:
+            return None, 0.0
+
+        candidates.sort(key=lambda x: -x[1])
+        best = candidates[0]
+
+        # Print top 5 candidates
+        print(f'[SmartSelector] Target={target_task} (bl={target_bl:.2f}) '
+              f'pair_history={has_pair_history}')
+        for name, score, sim_s, pair_s, pn, rep_s, gn, gd, _ in candidates[:5]:
+            pair_str = f'pair_avg={pair_s:.2f}(n={pn})' if pn > 0 else 'no-pair'
+            rep_str = f'rep={rep_s:+.2f}' if gn >= 2 else ''
+            print(f'  {name:>12s}: score={score:.3f} (sim={sim_s:.2f} '
+                  f'{pair_str} {rep_str})')
+        print(f'[SmartSelector] WINNER: {best[0]} (score={best[1]:.3f})')
+
+        confidence = max(0.0, min(1.0, best[1]))
+        return best[0], confidence
+
+    def get_name(self) -> str:
+        return 'SmartSelector'
+
+    def describe_selection(self, target_task: str, selected_source: Optional[str],
+                          confidence: float) -> str:
+        if selected_source is None:
+            return f'[SmartSelector] No suitable skill found for {target_task}'
+        bl = self.baselines.get(target_task, '?')
+        src_stats = self.history_data.get(selected_source, {})
+        n = src_stats.get('n', 0)
+        avg_delta = src_stats.get('avg_delta', 0)
+        pair_avg, pair_n = self._get_pair_score(target_task, selected_source)
+        return (
+            f'[SmartSelector] Selected "{selected_source}" for "{target_task}" '
+            f'(target_bl={bl}, source_history={n}x, avg_delta={avg_delta:+.3f}, '
+            f'pair_history={pair_n}x, pair_avg={pair_avg:.2f}, '
+            f'confidence={confidence:.3f})'
+        )
