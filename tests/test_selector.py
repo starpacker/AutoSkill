@@ -5,9 +5,19 @@ from autoskill.prune import prune_skill
 from autoskill.selector import SelectorConfig, V10Selector
 
 
-def test_prune_removes_reference_section():
-    text = "# Skill\n\n## Workflow\nDo work.\n\n## Reference Evidence\nsecret"
-    assert "secret" not in prune_skill(text)
+def test_prune_removes_explicit_operation_block_only():
+    text = (
+        "# Skill\n\n"
+        "<!-- ORACLE_OP_START op_010_contract -->\n"
+        "keep this\n"
+        "<!-- ORACLE_OP_END op_010_contract -->\n\n"
+        "<!-- ORACLE_OP_START op_020_notes -->\n"
+        "remove this\n"
+        "<!-- ORACLE_OP_END op_020_notes -->"
+    )
+    result = prune_skill(text, drop_operation_ids=["op_020_notes"])
+    assert "remove this" not in result
+    assert "keep this" in result
 
 
 def test_selector_direct_observation(tmp_path: Path):

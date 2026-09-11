@@ -11,8 +11,8 @@ logs, private judges, or credentials.
 ```text
 my_claude/                 public task/skill/result contract and harness adapter
 autoskill/
-  oracle.py               oracle-skill extraction
-  prune.py               section-aware pruning
+  oracle.py               reference-compatible oracle bundle generation
+  prune.py               operation-aware variant rendering/pruning
   generalize.py          optional LLM generalization
   transfer.py            four evaluation arms and aggregation
   selector/              V10 SEL data, compatibility, training, selection
@@ -85,9 +85,28 @@ For a benchmark, repeat this for every target task and retain each normalized
 
 ## 2. Oracle skill (task-specific upper bound)
 
-An oracle skill is extracted from a trusted reference solution and task
-instruction. The extractor describes the reusable method rather than copying
-answers:
+The reference implementation uses a task directory with `std_code/` as the
+source root:
+
+```text
+tasks/<task-id>/
+  README.md
+  output_schema.json
+  visible_data/
+  std_code/                 # up to 40 non-ignored source files
+```
+
+Generate a bundle (including `oracle_skill_manifest.json`, `source_index.json`,
+operation blocks, and resource notes) with:
+
+```bash
+python -m scripts.skill_pipeline generate-bundle \
+  --task-dir tasks/task-001 \
+  --output output/oracle-skills/task-001
+```
+
+The source path is therefore `tasks/task-001/std_code`, not a single
+reference file. For a small standalone example, the legacy extractor remains:
 
 ```bash
 python -m scripts.skill_pipeline extract \
@@ -105,17 +124,34 @@ python -m scripts.run_eval --task-id task-001 --task-dir tasks/task-001 \
 
 ## 3. Prune a skill
 
-Pruning removes redundant evidence, examples, and appendices while preserving
-workflow and output contracts:
+Pruning is operation ablation. It removes only explicit
+`ORACLE_OP_START/END` operation blocks; it does not guess that headings such
+as `Examples` or `Notes` are disposable:
+
+```bash
+python -m scripts.skill_pipeline render \
+  --bundle output/oracle-skills/task-001 \
+  --output output/oracle-skills/task-001-pruned \
+  --drop-ops op_030_reference_knowledge op_040_solver_flow
+```
+
+The renderer validates operation IDs, renders the remaining blocks, copies only
+their resources/scripts under stable aliases, strips internal operation
+metadata, and writes a variant manifest and evaluation command. The full
+server lifecycle evaluates the baseline first, optionally tries the author's
+`likely_removable_ops` batch, then tests single-operation deletions in
+descending `ablation_priority`; passing candidates are deleted and failing
+candidates retained. Inconclusive failures may trigger the debug-skill gate.
+
+For a standalone Markdown file, the compatibility command is:
 
 ```bash
 python -m scripts.skill_pipeline prune \
   --input skills/task-001/SKILL.md \
   --output skills/task-001/SKILL.pruned.md \
+  --drop-ops op_030_reference_knowledge \
   --max-lines 120
 ```
-
-Use the pruned file for transfer experiments when prompt budget matters.
 
 ## 4. LLM skill generalization
 
