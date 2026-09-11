@@ -203,6 +203,26 @@ For GT few-shot, place the source trajectory/examples in the skill file or in
 the external harness's few-shot prompt directory; the public runner remains
 agnostic to private data.
 
+## End-to-end skill lifecycle
+
+For a new source task and an unseen target, run the lifecycle in this order:
+
+1. **Generate** an oracle skill from the trusted reference solution with
+   `scripts.skill_pipeline extract`.
+2. **Prune** redundant sections with `scripts.skill_pipeline prune` when prompt
+   size or noise is a concern.
+3. **Generalize** the pruned skill for the target task family with
+   `scripts.skill_pipeline generalize`; configure `AUTOSKILL_LLM_API_KEY` for
+   LLM rewriting or use the deterministic fallback.
+4. **Migrate** the generalized skill to the unseen target by training V10 SEL
+   on held-out baseline/transfer records (`scripts.train_selector`) and asking
+   `scripts.select_skill` for the best source skill.
+5. **Test** all four arms (`no-skill`, `oracle`, `gt-few-shot`, `v10-sel`) with
+   `scripts.run_eval`, then summarize rewards with `scripts.compare`.
+
+This separation prevents target answers from leaking into generalized skills and
+makes every transfer decision auditable through its source task and score.
+
 ## Reproducing the workflow on a remote server
 
 ```bash
@@ -219,7 +239,7 @@ keys, or private judge files.
 
 ```bash
 python -m compileall -q my_claude autoskill scripts tests
-python -m unittest discover -s tests -v
+python -m pytest -q tests
 python -m scripts.skill_pipeline --help
 python -m scripts.select_skill --help
 git diff --check
