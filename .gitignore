@@ -1,6 +1,17 @@
 # Python
 __pycache__/
 *.pyc
+__pycache__/
+.venv/
+.env
+runs/
+outputs/
+results/
+skills/generated/
+logs/
+*.jsonl
+*.token
+*.key
 *.pyo
 *.egg-info/
 dist/
