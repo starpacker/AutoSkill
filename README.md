@@ -54,7 +54,7 @@ python generalize_skill_v2.py --source da-17-1
 python extract_min_core_skills.py --source da-17-1 --target da-17-5
 python run_pruned_transfer_pipeline.py --help
 python run_transfer_skill_eval.py --mode all --dry-run
-python -m skill_selector_v10.demo
+python -m skill_selector_v10.demo --local   # on server1; omit --local from a workstation
 python collect_results.py
 ```
 

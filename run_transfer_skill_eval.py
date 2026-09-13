@@ -17,11 +17,11 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
-BASE_DIR = Path("/data/yjh/skill-transfer-eval")
-HARNESS_DIR = Path("/tmp/my_claude_biomnibench_fixed")
-BUN = Path("/tmp/bun_extract/bun-linux-x64/bun")
-TASKS_DIR = Path("/data/yjh/biomnibench-organized")
-BUNDLES_DIR = Path("/data/yjh/biomnibench-skill-bundles")
+BASE_DIR = Path(os.environ.get("SKILL_TRANSFER_ROOT", "/data/yjh/skill-transfer-eval"))
+HARNESS_DIR = Path(os.environ.get("BIOMNIBENCH_HARNESS_DIR", "/tmp/my_claude_biomnibench_fixed"))
+BUN = Path(os.environ.get("BUN_BIN", "/tmp/bun_extract/bun-linux-x64/bun"))
+TASKS_DIR = Path(os.environ.get("BIOMNIBENCH_TASKS_DIR", "/data/yjh/biomnibench-organized"))
+BUNDLES_DIR = Path(os.environ.get("ORACLE_BUNDLES_DIR", "/data/yjh/biomnibench-skill-bundles"))
 SKILLS_DIR = BASE_DIR / "skills"
 OUTPUT_DIR = BASE_DIR / "generalized"
 
@@ -173,7 +173,7 @@ def run_single_eval(cmd, task_label, results):
         })
 
 
-def run_batch(tasks, mode_name, max_concurrent=2):
+def run_batch(tasks, mode_name, max_concurrent=2, dry_run=False):
     """Run a batch of evaluations with limited concurrency."""
     results = []
     threads = []
@@ -195,6 +195,15 @@ def run_batch(tasks, mode_name, max_concurrent=2):
                 })
             return
         run_single_eval(cmd, label, results)
+
+    if dry_run:
+        print(f"\n{'='*70}")
+        print(f"  {mode_name}: {len(tasks) * REPS} planned runs ({len(tasks)} unique tasks × {REPS} reps)")
+        print(f"  Max concurrent: {max_concurrent}")
+        print(f"{'='*70}\n")
+        for source, target, skill_name in tasks:
+            print(f"  [DRY-RUN] {source}->{target} ({skill_name})")
+        return []
 
     # Build task list
     task_items = []
@@ -251,16 +260,19 @@ def main():
     all_results = {}
 
     if args.mode in ("within-domain", "all"):
-        all_results["within-domain"] = run_batch(WITHIN_DOMAIN, "Within-Domain Transfer", args.max_concurrent)
+        all_results["within-domain"] = run_batch(
+            WITHIN_DOMAIN, "Within-Domain Transfer", args.max_concurrent, args.dry_run)
 
     if args.mode in ("cross-domain", "all"):
-        all_results["cross-domain"] = run_batch(CROSS_DOMAIN, "Cross-Domain Transfer", args.max_concurrent)
+        all_results["cross-domain"] = run_batch(
+            CROSS_DOMAIN, "Cross-Domain Transfer", args.max_concurrent, args.dry_run)
 
     # Save results
     results_path = BASE_DIR / "summary" / f"transfer_eval_results_{TIMESTAMP}.json"
-    results_path.parent.mkdir(parents=True, exist_ok=True)
-    results_path.write_text(json.dumps(all_results, indent=2))
-    print(f"\nResults saved to: {results_path}")
+    if not args.dry_run:
+        results_path.parent.mkdir(parents=True, exist_ok=True)
+        results_path.write_text(json.dumps(all_results, indent=2))
+        print(f"\nResults saved to: {results_path}")
 
     return all_results
 

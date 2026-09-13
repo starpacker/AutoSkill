@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata]
+task_id = "da-17-1"
+category = "immunology"
+difficulty = "medium"
+task_type = "cell-composition"
+
+[interface]
+input = "external BioMniBench task directory"
+output = "judge-scored analysis artifact"

@@ -6,3 +6,4 @@
 - `v10_sel.md`: V10 Smart Selector phases, thresholds, training, and testing.
 - `reproducibility.md`: external runtime/data setup and verification checklist.
 - `experiment_report.md`: interpretation of the published BioMniBench results.
+- `server_validation.md`: commands and observed server-side validation results.

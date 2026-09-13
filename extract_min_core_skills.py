@@ -18,12 +18,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-HARNESS = Path("/tmp/my_claude_biomnibench_fixed")
-BUN = Path("/tmp/bun_extract/bun-linux-x64/bun")
-BUNDLES = Path("/data/yjh/biomnibench-skill-bundles")
-ABLATIONS = Path("/data/yjh/skill-transfer-eval/ablations")
-PRUNED_BUNDLES = Path("/data/yjh/skill-transfer-eval/pruned_bundles")
-TASKS_DIR = Path("/data/yjh/biomnibench-organized")
+HARNESS = Path(os.environ.get("BIOMNIBENCH_HARNESS_DIR", "/tmp/my_claude_biomnibench_fixed"))
+BUN = Path(os.environ.get("BUN_BIN", "/tmp/bun_extract/bun-linux-x64/bun"))
+BUNDLES = Path(os.environ.get("ORACLE_BUNDLES_DIR", "/data/yjh/biomnibench-skill-bundles"))
+TRANSFER_ROOT = Path(os.environ.get("SKILL_TRANSFER_ROOT", "/data/yjh/skill-transfer-eval"))
+ABLATIONS = TRANSFER_ROOT / "ablations"
+PRUNED_BUNDLES = TRANSFER_ROOT / "pruned_bundles"
+TASKS_DIR = Path(os.environ.get("BIOMNIBENCH_TASKS_DIR", "/data/yjh/biomnibench-organized"))
 
 ALL_TASKS = [
     "da-1-3","da-1-4","da-10-1","da-10-3","da-11-1",
