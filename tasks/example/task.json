@@ -1,6 +1,0 @@
-{
-  "task_id": "example",
-  "instruction": "Load data/input.csv, summarize the numeric columns, and save report.json.",
-  "task_type": "example-analysis",
-  "max_rounds": 3
-}

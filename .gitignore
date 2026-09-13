@@ -1,58 +1,25 @@
-# Python
-__pycache__/
-*.pyc
-__pycache__/
-.venv/
 .env
+*.log
+*.py[cod]
+__pycache__/
+.pytest_cache/
+.judge_private/
 runs/
 outputs/
-results/
-skills/generated/
-logs/
-*.jsonl
-*.token
-*.key
-*.pyo
-*.egg-info/
-dist/
-build/
-
-# Temporary files (tmp_* files in root)
-tmp_*.py
-tmp_*.sh
-tmp_*.txt
-
-# Directories to exclude entirely
-tmp/
-data/
-BioDSA/
-BioDSBench/
-
-# Data files (large, not code)
-*.json
-*.jsonl
-*.csv
-*.tsv
-
-# Reports
-reports/
-docs/
-
-# Environment
-.venv/
-venv/
-.env
-
-# IDE
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Trajectory data
-trajectory_comparison_data.json
+baseline/
+with-skill/
+generalized/
+generalized_skills/
+generalized_skills_pruned/
+pruned_bundles/
+transfer/
+transfer_pruned/
+skills/
+ablations/
+summary/
+summary_pruned/
+similarity/
+bundles/
+tasks/
+results_index.json
+*.tgz
