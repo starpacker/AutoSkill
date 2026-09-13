@@ -36,7 +36,7 @@ class V10Config:
     qwen_api_key: str = field(default_factory=lambda: os.environ.get(
         "QWEN_API_KEY", os.environ.get("SKILL_TRANSFER_API_KEY", "")))
     qwen_base_url: str = "https://api.gpugeek.com/v1"
-    judge_model: str = "Vendor2/Gemini-3-flash"
+    judge_model: str = "Vendor3/DeepSeek-V4-Flash"
 
     # ── Evaluation ────────────────────────────────────────────────────────
     max_rounds: int = 5

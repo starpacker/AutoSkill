@@ -81,7 +81,9 @@ ENV = os.environ.copy()
 ENV["ANTHROPIC_API_KEY"] = ENV.get("ANTHROPIC_API_KEY") or ENV.get("SKILL_TRANSFER_API_KEY", "")
 ENV["ANTHROPIC_BASE_URL"] = "https://api.gpugeek.com"
 ENV["ANTHROPIC_MODEL"] = "Vendor3/DeepSeek-V4-Flash"
-ENV["QWEN_MODEL"] = "Vendor2/Gemini-3.1-pro"
+ENV["QWEN_MODEL"] = os.environ.get(
+    "QWEN_MODEL", "Vendor3/DeepSeek-V4-Flash"
+)
 
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 REPS = 2  # Number of repetitions per task

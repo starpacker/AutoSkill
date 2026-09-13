@@ -45,13 +45,15 @@ export ORACLE_BUNDLES_DIR=/path/to/biomnibench-skill-bundles
 export BIOMNIBENCH_HARNESS_DIR=/path/to/my_claude_biomnibench
 export BUN_BIN=/path/to/bun
 export ANTHROPIC_API_KEY=...
+# BioMniBench launchers may instead export API_KEY and BASE_URL; the
+# generalization runner accepts both naming conventions.
 ```
 
 Typical commands:
 
 ```bash
 python generalize_skill_v2.py --source da-17-1
-python extract_min_core_skills.py --source da-17-1 --target da-17-5
+python extract_min_core_skills.py --task da-17-1
 python run_pruned_transfer_pipeline.py --help
 python run_transfer_skill_eval.py --mode all --dry-run
 python -m skill_selector_v10.demo --local   # on server1; omit --local from a workstation

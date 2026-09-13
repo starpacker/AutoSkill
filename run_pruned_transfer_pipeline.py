@@ -47,7 +47,7 @@ LOG_DIR = Path("/data/yjh/skill-transfer-eval/logs")
 API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("SKILL_TRANSFER_API_KEY", "")
 API_URL = "https://api.gpugeek.com"
 MODEL = "Vendor3/DeepSeek-V4-Flash"
-JUDGE_MODEL = "Vendor3/qwen3.5-plus"
+JUDGE_MODEL = os.environ.get("QWEN_MODEL", "Vendor3/DeepSeek-V4-Flash")
 
 # 16 transfer pairs (source → target)
 TRANSFER_PAIRS = [

@@ -69,7 +69,11 @@ def render_pruned_bundle(task: str, drop_ops: list[str], dry_run: bool = False) 
     """Use the render command to create a pruned bundle."""
     bundle_dir = BUNDLES / task
     out_dir = PRUNED_BUNDLES / task
-    variant_manifest_path = out_dir / "variant_manifest.json"
+    # The renderer deliberately scans every file below ``out_dir`` for
+    # solver-facing metadata. Keep the control-plane manifest beside the
+    # rendered skill, not inside it, otherwise its ``enabled_ops`` field is
+    # correctly rejected as a metadata leak.
+    variant_manifest_path = PRUNED_BUNDLES / f"{task}_variant_manifest.json"
 
     if not drop_ops:
         print(f"  [SKIP] {task}: no ops to prune")
@@ -100,6 +104,7 @@ def render_pruned_bundle(task: str, drop_ops: list[str], dry_run: bool = False) 
         return False
 
     print(f"  [DONE] {task}: pruned bundle at {out_dir}")
+    print(f"    manifest: {variant_manifest_path}")
     return True
 
 

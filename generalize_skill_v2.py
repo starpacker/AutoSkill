@@ -27,9 +27,26 @@ Usage:
 import json, os, sys, time, re, argparse
 from pathlib import Path
 
-# API Configuration
-API_URL = "https://api.gpugeek.com/v1/messages"
-API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("SKILL_TRANSFER_API_KEY", "")
+# API Configuration. BioMniBench's launcher exports the gateway credentials as
+# API_KEY/BASE_URL, while direct runs commonly use the Anthropic-compatible
+# names. Resolve both forms so a live run uses exactly the same gateway as the
+# harness (and never falls back to a checked-in secret).
+_base_url = (
+    os.environ.get("ANTHROPIC_BASE_URL")
+    or os.environ.get("BASE_URL")
+    or "https://api.gpugeek.com"
+).rstrip("/")
+if _base_url.endswith("/messages"):
+    API_URL = _base_url
+elif _base_url.endswith("/v1"):
+    API_URL = f"{_base_url}/messages"
+else:
+    API_URL = f"{_base_url}/v1/messages"
+API_KEY = (
+    os.environ.get("ANTHROPIC_API_KEY")
+    or os.environ.get("API_KEY")
+    or os.environ.get("SKILL_TRANSFER_API_KEY", "")
+)
 MODEL = os.environ.get("SKILL_GEN_MODEL", "Vendor3/DeepSeek-V4-Flash")
 MAX_TOKENS = 8000
 MAX_RETRIES = 3
