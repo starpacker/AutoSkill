@@ -1,0 +1,19 @@
+{
+  "benchmark": "BioDSBench-R",
+  "evaluation_tasks": 39,
+  "grouping": "primary analysis objective; generic data-wrangling and visualization labels reassigned",
+  "delta_definition": "absolute pass-rate difference in percentage points: 100 * (ours_passes / n - no_skill_passes / n)",
+  "arms": {
+    "no_skill": {"passes": 30, "total": 39, "rate_percent": 76.9},
+    "skillopt_transfer": {"passes": 31, "total": 39, "rate_percent": 79.5},
+    "ours_v10_sel": {"passes": 39, "total": 39, "rate_percent": 100.0}
+  },
+  "task_types": [
+    {"name": "Pathway enrichment", "no_skill": [6, 10], "skillopt_transfer": [8, 10], "ours_v10_sel": [10, 10], "delta_pp": 40.0},
+    {"name": "Expression analysis", "no_skill": [19, 21], "skillopt_transfer": [18, 21], "ours_v10_sel": [21, 21], "delta_pp": 9.5},
+    {"name": "Survival analysis", "no_skill": [2, 3], "skillopt_transfer": [2, 3], "ours_v10_sel": [3, 3], "delta_pp": 33.3},
+    {"name": "Clustering", "no_skill": [3, 4], "skillopt_transfer": [2, 4], "ours_v10_sel": [4, 4], "delta_pp": 25.0},
+    {"name": "Cross-cohort comparison", "no_skill": [0, 1], "skillopt_transfer": [1, 1], "ours_v10_sel": [1, 1], "delta_pp": 100.0}
+  ],
+  "caveat": "A separate exploratory native SkillOpt rerun scored 26/39 with 13 task timeouts at 3000 seconds after changing endpoint; it is not the cross-benchmark SkillOpt transfer arm."
+}

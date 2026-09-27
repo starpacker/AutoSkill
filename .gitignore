@@ -1,58 +1,50 @@
-# Python
-__pycache__/
-*.pyc
-__pycache__/
-.venv/
+# Secrets and local configuration
 .env
+.env.*
+!.env.example
+*.token
+*.key
+
+# Python environments and generated files
+.venv/
+.venv-*/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Runtime outputs, logs, and generated result files
 runs/
 outputs/
 results/
-skills/generated/
 logs/
+*.log
 *.jsonl
-*.token
-*.key
-*.pyo
-*.egg-info/
+trajectory_comparison_data.json
+
+# Private or bulky benchmark inputs and generated task bundles
+/bench_data/
+/BioDSA/
+/BioDSBench/
+/data/
+/tasks/officeqa/
+/tasks/searchqa/
+/tasks/spreadsheetbench/
+
+# Local scratch, backups, and server-only tooling
+/tmp/
+/.tmp-*/
+/.remote-edit/
+/_native_env/
+/_server_scripts/
+/_staging_edit/
+*.bak
+*.bak_*
+
+# Build and editor artifacts
 dist/
 build/
-
-# Temporary files (tmp_* files in root)
-tmp_*.py
-tmp_*.sh
-tmp_*.txt
-
-# Directories to exclude entirely
-tmp/
-data/
-BioDSA/
-BioDSBench/
-
-# Data files (large, not code)
-*.json
-*.jsonl
-*.csv
-*.tsv
-
-# Reports
-reports/
-docs/
-
-# Environment
-.venv/
-venv/
-.env
-
-# IDE
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Trajectory data
-trajectory_comparison_data.json

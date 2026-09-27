@@ -259,17 +259,71 @@ For a new source task and an unseen target, run the lifecycle in this order:
 This separation prevents target answers from leaking into generalized skills and
 makes every transfer decision auditable through its source task and score.
 
-## Reproducing the workflow on a remote server
+## Research artifacts and benchmark evaluations
+
+This repository includes the reusable framework, benchmark adapters, selected
+evaluation drivers, and the paper. It does not redistribute benchmark source
+datasets, generated task bundles, private reference answers, run trajectories,
+or model credentials. See [`experiments/README.md`](experiments/README.md) for
+runner requirements and environment configuration. The [`research/`](research/)
+directory contains result reports and the machine-readable
+[`39-task aggregate`](research/biodsbench_r_39_aggregate.json).
+
+| Benchmark/workflow | Included code | Evaluation scope |
+| --- | --- | --- |
+| BioDSBench-R | `experiments/biodsbench_r/` | No-skill, cross-benchmark SkillOpt transfer, V10 SEL, baseline3 GT few-shot, and native SkillOpt drivers |
+| BioMNIBench | `skillopt_biomnibench/` | SkillOpt adapter, dataloader, and rollout integration |
+| OfficeQA | `adapters/officeqa/build.py` | Task builder; private answer files and generated tasks are excluded |
+| SearchQA | `adapters/searchqa/build.py` | Open-/closed-book task builder; source corpus and generated tasks are excluded |
+| SpreadsheetBench | `adapters/spreadsheetbench/build.py` | Spreadsheet task builder; source workbooks and generated tasks are excluded |
+
+The main BioDSBench-R comparison covers 39 tasks. The published grouping below
+uses the primary analytical objective: generic data preparation and plotting
+tasks are assigned to the downstream analysis they support, rather than kept
+as broad standalone categories. $\Delta$ is the absolute pass-rate difference
+in percentage points (pp).
+
+| Task type | No Skill | SkillOpt | Ours (V10 SEL) | $\Delta$ (Ours - No Skill) |
+| --- | ---: | ---: | ---: | ---: |
+| Pathway enrichment | 6/10 | 8/10 | **10/10** | **+40.0 pp** |
+| Expression analysis | 19/21 | 18/21 | **21/21** | **+9.5 pp** |
+| Survival analysis | 2/3 | 2/3 | **3/3** | **+33.3 pp** |
+| Clustering | 3/4 | 2/4 | **4/4** | **+25.0 pp** |
+| Cross-cohort comparison | 0/1 | **1/1** | **1/1** | **+100.0 pp** |
+| **All tasks** | **30/39 (76.9%)** | **31/39 (79.5%)** | **39/39 (100%)** | **+23.1 pp** |
+
+Here, **SkillOpt** denotes the BioMNIBench-trained skill transferred to
+BioDSBench; **Ours** denotes the BioDSBench-native V10 selector. A separate exploratory
+native SkillOpt rerun scored 26/39 with 13 tasks timing out at the 3,000-second
+limit after changing the model endpoint; it is not the SkillOpt transfer column
+and should not be interpreted as a controlled head-to-head result.
+
+The supplied manuscript is [`paper/Forgetting_Is_What_to_Learn__Verifier_Grounded_Minimal_Core_Skills_for_Self_Evolving_Agents.pdf`](paper/Forgetting_Is_What_to_Learn__Verifier_Grounded_Minimal_Core_Skills_for_Self_Evolving_Agents.pdf).
+
+## Reproducing evaluations
+
+The BioDSBench runners target an externally installed Bun/TypeScript harness
+and benchmark task directory. Configure paths and credentials in the shell,
+never in source files:
 
 ```bash
-ssh server1
-cd /path/to/skill-transfer-eval
+export SKILL_TRANSFER_DIR=/path/to/skill_transfer
+export HARNESS_DIR=/path/to/my_claude_harness
+export R_TASKS_DIR=/path/to/biodsbench_r/tasks
+export ANTHROPIC_API_KEY=your_key
+export ANTHROPIC_BASE_URL=https://api.example.com
+export ANTHROPIC_MODEL=your_model
 ```
 
-Use the private benchmark paths to generate baselines and transfer runs, then
-copy only normalized JSON indices and sanitized skills into a local working
-directory. Do not publish server-specific paths, logs, generated results, API
-keys, or private judge files.
+Use `--dry-run` where available before execution. The native disk-safe runner
+supports `--workers`, `--tag`, and `--collect-only`; it checks free space before
+each task, writes resumable JSON results, and removes per-task run workspaces
+after collection. See [`experiments/biodsbench_r/README.md`](experiments/biodsbench_r/README.md)
+for commands and prerequisites.
+
+Benchmark data must be obtained from its original source and used under its
+license/terms. Generated tasks and private judges are local evaluation assets,
+not part of this public repository.
 
 ## Validation
 
@@ -281,5 +335,6 @@ python -m scripts.select_skill --help
 git diff --check
 ```
 
-The repository intentionally does not claim benchmark scores. Scores depend on
-the private harness, model endpoint, task split, and evaluation data.
+Results are tied to the stated model endpoint, task split, harness version, and
+judge. Re-run the complete evaluation under one fixed configuration before
+using scores as a new controlled comparison.
