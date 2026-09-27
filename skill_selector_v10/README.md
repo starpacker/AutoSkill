@@ -18,7 +18,7 @@ skill_selector_v10/
 ├── __init__.py          # Package entry, exports
 ├── config.py            # V10Config dataclass (all paths, API keys, thresholds)
 ├── compatibility.py     # Compatibility groups & tier checking
-├── data.py              # DataLoader (baselines, similarity, confidence model, task types)
+├── data.py              # DataLoader (baselines, similarity, v7 model, task types)
 ├── selector.py          # SmartSelectorV10 (the core selection algorithm)
 ├── tools.py             # deploy_skill, run_evaluation, collect_result, run_experiment
 └── scripts/
@@ -37,8 +37,8 @@ Find the most similar **known** target (via similarity matrix), use its best sou
 ### Phase 2→3 Override
 If P2 fails its tier threshold, check if a same-type/compatible P3 candidate exists that meets its threshold. This prevents false negatives.
 
-### Phase 3 — Confidence Score (P3)
-When no direct or neighbor data exists, use the confidence model: `score = f_hat(baseline) + source_quality[source] + compatibility_bonus`.
+### Phase 3 — v7 Fallback (P3)
+When no direct or neighbor data exists, use the v7 model: `score = f_hat(baseline) + source_quality[source] + compatibility_bonus`.
 
 ## Tiered Thresholds
 
@@ -152,7 +152,7 @@ selector = SmartSelectorV10(cfg=cfg)
 |:-----|:--------|
 | `config.py` | Single source of truth for all paths, API keys, thresholds |
 | `compatibility.py` | 7 compatibility groups, tier checking utilities |
-| `data.py` | Loads baselines, similarity matrix, confidence model, task types |
+| `data.py` | Loads baselines, similarity matrix, v7 model, task types |
 | `selector.py` | Core `SmartSelectorV10` class with 3-phase selection |
 | `tools.py` | Deploy, evaluate, collect, run_experiment utilities |
 | `scripts/run_experiments.py` | CLI runner for full experiment pipeline |

@@ -1,7 +1,7 @@
 """
 Data loading utilities for the V10 skill selector.
 
-Loads baselines, similarity matrix, results index, and confidence model
+Loads baselines, similarity matrix, results index, and v7 model
 from the server. Designed to work both locally (via SSH) and on-server.
 """
 
@@ -121,7 +121,7 @@ class DataLoader:
         self.target_lookup = {}
         for tg, srcs in obs.items():
             srcs.sort(key=lambda x: -x[1])
-            if srcs[0][1] > 0.05:  # P1 min_score = 0.05
+            if srcs[0][1] > 0.05:  # P1 min_score = 0.05 (hardcoded from V8)
                 self.target_lookup[tg] = {"source": srcs[0][0], "delta": srcs[0][1]}
 
         # P2: Nearest neighbor (find most similar known target)
@@ -222,13 +222,13 @@ class DataLoader:
         self._log("Loading similarity matrix...")
         self.similarity_matrix = self._load_json(self.cfg.similarity_path, remote)
 
-        self._log("Loading confidence model...")
+        self._log("Loading v7 model...")
         try:
-            model = self._load_json(self.cfg.confidence_model_path, remote)
-            self.source_quality = model.get("source_shrink", {})
-            self.f_hat = self._build_f_hat(model.get("isotonic_points", []))
+            v7 = self._load_json(self.cfg.v7_model_path, remote)
+            self.source_quality = v7.get("source_shrink", {})
+            self.f_hat = self._build_f_hat(v7.get("isotonic_points", []))
         except Exception as e:
-            self._log(f"WARNING: Could not load confidence model: {e}")
+            self._log(f"WARNING: Could not load v7 model: {e}")
 
         self._log("Building P1/P2 lookups...")
         self._build_lookup(self.results_index)

@@ -259,6 +259,30 @@ For a new source task and an unseen target, run the lifecycle in this order:
 This separation prevents target answers from leaking into generalized skills and
 makes every transfer decision auditable through its source task and score.
 
+## BioMniBench lifecycle pipeline
+
+The repository also includes the validated end-to-end pipeline published on
+the current `main` branch: reference-based oracle skill generation,
+task-agnostic skill generalization, ablation-based minimum-core pruning, and
+four-arm transfer evaluation. The V10 selector uses direct observations,
+nearest-neighbor evidence, then a compatibility- and source-quality-aware v7
+fallback. Main entry points include:
+
+| Stage | Entry point |
+| --- | --- |
+| Generalize a source skill | `generalize_skill_v2.py` |
+| Prune to a minimal core | `extract_min_core_skills.py` |
+| Run the pruned transfer pipeline | `run_pruned_transfer_pipeline.py` |
+| Run transfer evaluation | `run_transfer_skill_eval.py` |
+| Collect normalized results | `collect_results.py` |
+| V10 selector implementation | `skill_selector_v10/` |
+
+The BioMniBench task bundles and harness remain external. Configure
+`SKILL_TRANSFER_ROOT`, `BIOMNIBENCH_TASKS_DIR`, `BIOMNIBENCH_HARNESS_DIR`,
+`BUN_BIN`, and API credentials through environment variables; no credentials
+are stored in the repository. See [`docs/`](docs/README.md) for protocol,
+reproducibility, pruning, and leakage-control details.
+
 ## Research artifacts and benchmark evaluations
 
 This repository includes the reusable framework, benchmark adapters, selected

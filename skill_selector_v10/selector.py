@@ -1,7 +1,7 @@
 """
 SmartSelectorV10 — SOTA Skill Selector with Tiered Thresholds.
 
-A self-contained implementation with tiered thresholds.
+A self-contained implementation (no inheritance from V9/V8).
 
 Key insight from 23 validation experiments:
 - Same-type transfers: 76% positive, 94% non-negative → very permissive threshold
@@ -11,7 +11,7 @@ Key insight from 23 validation experiments:
 Three-phase selection:
 - P1: Direct observation (GT-verified truth) — exempt from thresholds
 - P2: Nearest neighbor — find similar target with known good source
-    - P3: Confidence score — isotonic curve + source quality + compatibility bonus
+- P3: v7 fallback — isotonic curve + source quality + compatibility bonus
 """
 
 from typing import Dict, Optional, Tuple
@@ -40,7 +40,7 @@ class SmartSelectorV10:
             print(f"[V10] {msg}", flush=True)
 
     def load(self, remote: bool = True) -> "SmartSelectorV10":
-        """Load all data (baselines, similarity, confidence model, task types)."""
+        """Load all data (baselines, similarity, v7 model, task types)."""
         self.data.load_all(remote=remote)
         return self
 
@@ -65,7 +65,7 @@ class SmartSelectorV10:
         Strategy:
         - P1: Direct observation (GT-verified) → exempt from all thresholds
         - P2: Nearest neighbor → tiered by task_type compatibility
-        - P3: Confidence score → tiered by task_type compatibility
+        - P3: v7 fallback → tiered by task_type compatibility
         - P2→P3 override: best compatible/same-type P3 if P2 fails threshold
         """
         bl = self.data.baselines.get(target, 0.5)
@@ -144,7 +144,7 @@ class SmartSelectorV10:
                     )
                     return best_override[0], best_override[1]
 
-        # ── P3: Confidence Score ──────────────────────────────────────────
+        # ── P3: v7 Fallback ──────────────────────────────────────────────
         if p3_candidates:
             best = p3_candidates[0]
             s, adj_score, raw, tier, bonus, threshold = best

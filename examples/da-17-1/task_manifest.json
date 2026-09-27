@@ -1,0 +1,6 @@
+{
+  "task_id": "da-17-1",
+  "task_type": "cell-composition",
+  "oracle_skill": "skills/oracle/SKILL.md",
+  "external_runtime_required": true
+}

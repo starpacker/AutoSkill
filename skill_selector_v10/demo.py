@@ -7,6 +7,7 @@ Run this locally (requires SSH access to server1).
 
 import sys
 import os
+import argparse
 
 # Add parent dir to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,13 +17,17 @@ from skill_selector_v10.tools import discover_skills
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--local", action="store_true",
+                        help="read configured data paths locally (useful on server1)")
+    args = parser.parse_args()
     print("=" * 70)
     print("  SmartSelectorV10 Demo")
     print("=" * 70)
 
     # Load selector
     selector = SmartSelectorV10(verbose=True)
-    selector.load(remote=True)
+    selector.load(remote=not args.local)
 
     print(f"\nLoaded {len(selector.data.baselines)} baselines")
     print(f"Found {len(selector.data.task_types)} task types")
@@ -31,7 +36,7 @@ def main():
     print(f"P3 source qualities: {len(selector.data.source_quality)}")
 
     # Discover available skills
-    available = discover_skills()
+    available = discover_skills(remote=not args.local)
 
     # Example: select for a few targets
     targets = ["da-25-1", "da-8-3", "da-9-1", "da-24-3", "da-15-7"]

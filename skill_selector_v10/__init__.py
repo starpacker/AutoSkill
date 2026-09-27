@@ -1,7 +1,7 @@
 """
 SmartSelectorV10 — SOTA Skill Selector for BioDSBench Transfer Learning.
 
-A self-contained, standalone package with no external dependencies.
+A self-contained, standalone package. No dependency on V9/V8 inheritance chain.
 """
 
 from .config import V10Config

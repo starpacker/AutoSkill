@@ -14,32 +14,36 @@ from typing import Dict, Optional
 class V10Config:
     # ── Server Paths ──────────────────────────────────────────────────────
     remote_base: str = field(default_factory=lambda: os.environ.get(
-        "AUTOSKILL_REMOTE_BASE", "/path/to/skill-transfer-eval"))
+        "SKILL_TRANSFER_ROOT",
+        os.environ.get("AUTOSKILL_REMOTE_BASE", "/path/to/skill-transfer-eval")))
     generalized_skills_dir: str = field(init=False)
     skills_dir: str = field(init=False)
     similarity_path: str = field(init=False)
     results_index_path: str = field(init=False)
-    confidence_model_path: str = field(init=False)
+    v7_model_path: str = field(init=False)
     bio_dir: str = field(default_factory=lambda: os.environ.get(
-        "BIOMNIBENCH_DIR", "/path/to/biomnibench-organized"))
+        "BIOMNIBENCH_TASKS_DIR",
+        os.environ.get("BIOMNIBENCH_DIR", "/path/to/biomnibench-organized")))
     runs_dir: str = field(init=False)
     transfer_dir: str = field(init=False)
 
     # ── Harness / CLI ────────────────────────────────────────────────────
     harness_dir: str = field(default_factory=lambda: os.environ.get(
-        "AUTOSKILL_HARNESS_DIR", "/path/to/my_claude_harness"))
+        "BIOMNIBENCH_HARNESS_DIR",
+        os.environ.get("AUTOSKILL_HARNESS_DIR", "/path/to/my_claude_harness")))
     bun_bin: str = field(default_factory=lambda: os.environ.get(
-        "AUTOSKILL_BUN_BIN", "bun"))
+        "BUN_BIN", os.environ.get("AUTOSKILL_BUN_BIN", "bun")))
 
     # ── API ───────────────────────────────────────────────────────────────
     anthropic_api_key: str = field(default_factory=lambda: os.environ.get(
-        "ANTHROPIC_API_KEY", ""))
+        "ANTHROPIC_API_KEY", os.environ.get("SKILL_TRANSFER_API_KEY", "")))
     anthropic_base_url: str = field(default_factory=lambda: os.environ.get(
         "ANTHROPIC_BASE_URL", "https://api.example.com"))
     worker_model: str = field(default_factory=lambda: os.environ.get(
         "ANTHROPIC_MODEL", "your-model"))
 
-    qwen_api_key: str = field(default_factory=lambda: os.environ.get("QWEN_API_KEY", ""))
+    qwen_api_key: str = field(default_factory=lambda: os.environ.get(
+        "QWEN_API_KEY", os.environ.get("SKILL_TRANSFER_API_KEY", "")))
     qwen_base_url: str = field(default_factory=lambda: os.environ.get(
         "QWEN_BASE_URL", "https://api.example.com/v1"))
     judge_model: str = field(default_factory=lambda: os.environ.get(
@@ -53,7 +57,7 @@ class V10Config:
     thinking: str = "disabled"
 
     # ── Selector Thresholds ───────────────────────────────────────────────
-    # Same-type: very permissive (validation shows even negative scores can give +0.11)
+    # Same-type: very permissive (validation shows even V9 score=-0.17 can give +0.11)
     same_type_bonus: float = 0.15
     same_type_threshold: float = -0.15
 
@@ -80,7 +84,7 @@ class V10Config:
         self.skills_dir = f"{self.remote_base}/skills"
         self.similarity_path = f"{self.remote_base}/similarity/similarity_matrix.json"
         self.results_index_path = f"{self.remote_base}/results_index.json"
-        self.confidence_model_path = f"{self.remote_base}/skill_selector/v7_model.json"
+        self.v7_model_path = f"{self.remote_base}/skill_selector/v7_model.json"
         self.runs_dir = f"{self.remote_base}/generalized"
         self.transfer_dir = f"{self.remote_base}/transfer"
 
